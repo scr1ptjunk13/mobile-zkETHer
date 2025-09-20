@@ -5,9 +5,9 @@ import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { colors } from './src/styles/colors';
 import { globalStyles } from './src/styles/globalStyles';
 import { StyleSheet, View } from 'react-native';
-import { WalletConnectModal } from '@walletconnect/modal-react-native';
+// import { WalletConnectModal } from '@walletconnect/modal-react-native';
 import OnboardingFlow from './src/components/OnboardingFlow';
-import { projectId, providerMetadata } from './src/config/walletConnect';
+// import { projectId, providerMetadata } from './src/config/walletConnect';
 
 export default function App() {
   return (
@@ -16,10 +16,10 @@ export default function App() {
         <StatusBar style="light" backgroundColor={colors.background} />
         <View style={styles.container}>
           <OnboardingFlow />
-          <WalletConnectModal 
+          {/* <WalletConnectModal 
             projectId={projectId} 
             providerMetadata={providerMetadata} 
-          />
+          /> */}
         </View>
       </SafeAreaView>
     </OnboardingProvider>
