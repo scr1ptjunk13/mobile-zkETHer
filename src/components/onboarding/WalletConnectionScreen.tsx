@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useWalletConnectModal } from '@walletconnect/modal-react-native';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { globalStyles } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
@@ -11,18 +12,26 @@ type ConnectionStep = 'select' | 'connecting' | 'connected';
 
 export default function WalletConnectionScreen() {
   const { setCurrentStep } = useOnboarding();
+  const { open, isConnected, address, provider } = useWalletConnectModal();
   
   const nextStep = () => {
     setCurrentStep('kyc' as any);
   };
   const [step, setStep] = useState<ConnectionStep>('select');
-  const [selectedWallet, setSelectedWallet] = useState<string>('');
 
-  const handleWalletSelect = async (walletType: string) => {
-    setSelectedWallet(walletType);
+  const handleWalletConnect = async () => {
+    if (isConnected) {
+      await provider?.disconnect();
+      setStep('select');
+    } else {
+      setStep('connecting');
+      await open();
+    }
+  };
+
+  const handleMetaMaskConnect = async () => {
     setStep('connecting');
-    
-    // Simulate wallet connection
+    // Simulate MetaMask connection for now
     setTimeout(() => {
       setStep('connected');
       setTimeout(() => {
@@ -30,6 +39,16 @@ export default function WalletConnectionScreen() {
       }, 2000);
     }, 3000);
   };
+
+  // Auto-advance when WalletConnect connects
+  React.useEffect(() => {
+    if (isConnected && address) {
+      setStep('connected');
+      setTimeout(() => {
+        nextStep();
+      }, 2000);
+    }
+  }, [isConnected, address]);
 
   const walletOptions = [
     {
@@ -62,7 +81,7 @@ export default function WalletConnectionScreen() {
           <TouchableOpacity
             key={wallet.id}
             style={styles.walletCard}
-            onPress={() => handleWalletSelect(wallet.id)}
+            onPress={() => wallet.id === 'walletconnect' ? handleWalletConnect() : handleMetaMaskConnect()}
           >
             <Card style={styles.walletCardInner}>
               <CardContent>
@@ -80,7 +99,7 @@ export default function WalletConnectionScreen() {
                 </View>
                 <Button
                   title={`CONNECT ${wallet.name.split(' ')[0].toUpperCase()}`}
-                  onPress={() => handleWalletSelect(wallet.id)}
+                  onPress={() => wallet.id === 'walletconnect' ? handleWalletConnect() : handleMetaMaskConnect()}
                   style={styles.connectButton}
                 />
               </CardContent>
@@ -128,7 +147,12 @@ export default function WalletConnectionScreen() {
             <Button
               title="CONNECT"
               style={styles.mockButton}
-              onPress={() => handleWalletSelect(selectedWallet || 'MetaMask')}
+              onPress={() => {
+                setStep('connected');
+                setTimeout(() => {
+                  nextStep();
+                }, 2000);
+              }}
             />
           </View>
         </CardContent>
@@ -159,7 +183,7 @@ export default function WalletConnectionScreen() {
         <CardContent>
           <Text style={styles.successLabel}>SUCCESS</Text>
           <Text style={styles.successWallet}>Connected to metamask</Text>
-          <Text style={styles.successAddress}>Address: 0x4aec92...</Text>
+          <Text style={styles.successAddress}>Address: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '0x4aec92...'}</Text>
           <Text style={styles.successBalance}>Balance: 5.44 ETH</Text>
           
           <View style={styles.successDots}>
