@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useWallet } from '../../contexts/WalletContext';
 import { globalStyles } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 import Button from '../ui/Button';
@@ -12,47 +11,24 @@ type ConnectionStep = 'select' | 'connecting' | 'connected';
 
 export default function WalletConnectionScreen() {
   const { setCurrentStep } = useOnboarding();
-  const { 
-    isConnected, 
-    isConnecting, 
-    address, 
-    balance, 
-    walletType, 
-    error, 
-    connectWallet, 
-    clearError 
-  } = useWallet();
   
-  const [step, setStep] = useState<ConnectionStep>('select');
-
   const nextStep = () => {
     setCurrentStep('kyc' as any);
   };
+  const [step, setStep] = useState<ConnectionStep>('select');
+  const [selectedWallet, setSelectedWallet] = useState<string>('');
 
-  // Watch for wallet connection changes
-  useEffect(() => {
-    if (isConnecting) {
-      setStep('connecting');
-    } else if (isConnected) {
+  const handleWalletSelect = async (walletType: string) => {
+    setSelectedWallet(walletType);
+    setStep('connecting');
+    
+    // Simulate wallet connection
+    setTimeout(() => {
       setStep('connected');
-      // Auto-proceed after showing success
       setTimeout(() => {
         nextStep();
-      }, 3000);
-    } else if (error) {
-      setStep('select');
-      Alert.alert('Connection Failed', error, [
-        { text: 'OK', onPress: clearError }
-      ]);
-    }
-  }, [isConnecting, isConnected, error]);
-
-  const handleWalletSelect = async (type: 'metamask' | 'walletconnect') => {
-    try {
-      await connectWallet(type);
-    } catch (err) {
-      console.error('Wallet connection error:', err);
-    }
+      }, 2000);
+    }, 3000);
   };
 
   const walletOptions = [
@@ -86,7 +62,7 @@ export default function WalletConnectionScreen() {
           <TouchableOpacity
             key={wallet.id}
             style={styles.walletCard}
-            onPress={() => handleWalletSelect(wallet.id as 'metamask' | 'walletconnect')}
+            onPress={() => handleWalletSelect(wallet.id)}
           >
             <Card style={styles.walletCardInner}>
               <CardContent>
@@ -104,7 +80,7 @@ export default function WalletConnectionScreen() {
                 </View>
                 <Button
                   title={`CONNECT ${wallet.name.split(' ')[0].toUpperCase()}`}
-                  onPress={() => handleWalletSelect(wallet.id as 'metamask' | 'walletconnect')}
+                  onPress={() => handleWalletSelect(wallet.id)}
                   style={styles.connectButton}
                 />
               </CardContent>
@@ -117,19 +93,19 @@ export default function WalletConnectionScreen() {
 
   const renderConnectingStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.connectingTitle}>Connecting to {walletType || 'wallet'}...</Text>
+      <Text style={styles.connectingTitle}>Connecting to metamask...</Text>
       
       <View style={styles.dotMatrixContainer}>
         <DotMatrix size="md" pattern="network" />
       </View>
       
-      <Text style={styles.connectingSubtitle}>Please approve in your wallet app</Text>
+      <Text style={styles.connectingSubtitle}>Please approve in metamask</Text>
 
       <Card style={styles.mockWalletCard}>
         <CardContent>
           <View style={styles.mockWalletHeader}>
             <Text style={styles.mockWalletIcon}>📱</Text>
-            <Text style={styles.mockWalletBrand}>{walletType || 'wallet'}</Text>
+            <Text style={styles.mockWalletBrand}>metamask</Text>
           </View>
           
           <View style={styles.mockWalletContent}>
@@ -150,9 +126,9 @@ export default function WalletConnectionScreen() {
               onPress={() => setStep('select')}
             />
             <Button
-              title="CONNECTING..."
+              title="CONNECT"
               style={styles.mockButton}
-              disabled={true}
+              onPress={() => handleWalletSelect(selectedWallet || 'MetaMask')}
             />
           </View>
         </CardContent>
@@ -182,9 +158,9 @@ export default function WalletConnectionScreen() {
       <Card style={styles.successCard}>
         <CardContent>
           <Text style={styles.successLabel}>SUCCESS</Text>
-          <Text style={styles.successWallet}>Connected to {walletType}</Text>
-          <Text style={styles.successAddress}>Address: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Loading...'}</Text>
-          <Text style={styles.successBalance}>Balance: {balance ? `${parseFloat(balance).toFixed(4)} ETH` : 'Loading...'}</Text>
+          <Text style={styles.successWallet}>Connected to metamask</Text>
+          <Text style={styles.successAddress}>Address: 0x4aec92...</Text>
+          <Text style={styles.successBalance}>Balance: 5.44 ETH</Text>
           
           <View style={styles.successDots}>
             <DotMatrix size="sm" pattern="balance" />
