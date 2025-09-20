@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Animated } from 'react-native';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { useWallet } from '../contexts/WalletContext';
 import { globalStyles } from '../styles/globalStyles';
 import { colors } from '../styles/colors';
 import Button from './ui/Button';
@@ -56,8 +57,8 @@ function PulsingDot() {
 }
 
 export default function HomeScreen() {
-  const { kycData, isKYCCompleted, walletAddress, walletBalance, walletType } = useOnboarding();
-  const [balance] = useState(2.50);
+  const { kycData, isKYCCompleted } = useOnboarding();
+  const { isConnected, address, balance } = useWallet();
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -172,12 +173,12 @@ export default function HomeScreen() {
                   <View style={styles.walletDetails}>
                     <Text style={styles.walletEmoji}>📱</Text>
                     <Text style={styles.walletType}>
-                      {walletType || 'metamask'} ({walletBalance || '5.44'} ETH)
+                      {isConnected ? 'WalletConnect' : 'Not Connected'} ({balance} ETH)
                     </Text>
                   </View>
                 </View>
                 <Text style={styles.walletAddress}>
-                  {walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}` : '0xsaec92...6d683d'}
+                  {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : '0xsaec92...6d683d'}
                 </Text>
               </CardContent>
             </Card>
@@ -189,7 +190,7 @@ export default function HomeScreen() {
                 <View style={styles.dotMatrixContainer}>
                   <DotMatrix pattern="balance" size="medium" />
                 </View>
-                <Text style={styles.balanceAmount}>{balance.toFixed(2)} ETH</Text>
+                <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} ETH</Text>
                 <Text style={styles.balanceStatus}>
                   {isKYCCompleted ? 'COMPLIANT & UNLINKABLE' : 'UNLINKABLE'}
                 </Text>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useWalletConnectModal } from '@walletconnect/modal-react-native';
+import { AppKitButton } from '@reown/appkit-wagmi-react-native';
+import { useWallet } from '../../contexts/WalletContext';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { globalStyles } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
@@ -11,57 +12,42 @@ import DotMatrix from '../DotMatrix';
 type ConnectionStep = 'select' | 'connecting' | 'connected';
 
 export default function WalletConnectionScreen() {
-  const { setCurrentStep } = useOnboarding();
-  const { open, isConnected, address, provider } = useWalletConnectModal();
+  const { setCurrentStep, setWalletConnection } = useOnboarding();
+  const { isConnected, address, balance, walletType, connectWallet, disconnectWallet } = useWallet();
   
   const nextStep = () => {
     setCurrentStep('kyc' as any);
   };
   const [step, setStep] = useState<ConnectionStep>('select');
 
-  const handleWalletConnect = async () => {
+  const handleWalletConnectPress = async () => {
     if (isConnected) {
-      await provider?.disconnect();
+      await disconnectWallet();
       setStep('select');
     } else {
       setStep('connecting');
-      await open();
+      connectWallet(); // Fixed: removed argument as connectWallet takes no parameters
     }
   };
 
-  const handleMetaMaskConnect = async () => {
-    setStep('connecting');
-    // Simulate MetaMask connection for now
-    setTimeout(() => {
-      setStep('connected');
-      setTimeout(() => {
-        nextStep();
-      }, 2000);
-    }, 3000);
-  };
-
-  // Auto-advance when WalletConnect connects
+  // Auto-advance when MetaMask connects
   React.useEffect(() => {
     if (isConnected && address) {
       setStep('connected');
+      // Save wallet connection to context
+      setWalletConnection(address, parseFloat(balance), walletType || 'AppKit');
       setTimeout(() => {
         nextStep();
       }, 2000);
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, balance]);
 
   const walletOptions = [
     {
-      id: 'metamask',
-      name: 'MetaMask Mobile',
-      icon: '📱',
-      description: 'Most popular wallet',
-    },
-    {
       id: 'walletconnect',
-      name: 'WalletConnect',
+      name: 'Connect Wallet',
       icon: '🔗', 
-      description: 'Other wallets',
+      description: 'MetaMask, Trust, Rainbow & more',
     }
   ];
 
@@ -81,7 +67,7 @@ export default function WalletConnectionScreen() {
           <TouchableOpacity
             key={wallet.id}
             style={styles.walletCard}
-            onPress={() => wallet.id === 'walletconnect' ? handleWalletConnect() : handleMetaMaskConnect()}
+            onPress={() => handleWalletConnectPress()}
           >
             <Card style={styles.walletCardInner}>
               <CardContent>
@@ -97,11 +83,7 @@ export default function WalletConnectionScreen() {
                     <DotMatrix pattern="header" size="sm" />
                   </View>
                 </View>
-                <Button
-                  title={`CONNECT ${wallet.name.split(' ')[0].toUpperCase()}`}
-                  onPress={() => wallet.id === 'walletconnect' ? handleWalletConnect() : handleMetaMaskConnect()}
-                  style={styles.connectButton}
-                />
+                <AppKitButton />
               </CardContent>
             </Card>
           </TouchableOpacity>
@@ -112,19 +94,19 @@ export default function WalletConnectionScreen() {
 
   const renderConnectingStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.connectingTitle}>Connecting to metamask...</Text>
+      <Text style={styles.connectingTitle}>Connecting to wallet...</Text>
       
       <View style={styles.dotMatrixContainer}>
         <DotMatrix size="md" pattern="network" />
       </View>
       
-      <Text style={styles.connectingSubtitle}>Please approve in metamask</Text>
+      <Text style={styles.connectingSubtitle}>Please approve in your wallet app</Text>
 
       <Card style={styles.mockWalletCard}>
         <CardContent>
           <View style={styles.mockWalletHeader}>
-            <Text style={styles.mockWalletIcon}>📱</Text>
-            <Text style={styles.mockWalletBrand}>metamask</Text>
+            <Text style={styles.mockWalletIcon}>🔗</Text>
+            <Text style={styles.mockWalletBrand}>WalletConnect</Text>
           </View>
           
           <View style={styles.mockWalletContent}>
@@ -182,9 +164,9 @@ export default function WalletConnectionScreen() {
       <Card style={styles.successCard}>
         <CardContent>
           <Text style={styles.successLabel}>SUCCESS</Text>
-          <Text style={styles.successWallet}>Connected to metamask</Text>
+          <Text style={styles.successWallet}>Connected to MetaMask</Text>
           <Text style={styles.successAddress}>Address: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '0x4aec92...'}</Text>
-          <Text style={styles.successBalance}>Balance: 5.44 ETH</Text>
+          <Text style={styles.successBalance}>Balance: {balance} ETH</Text>
           
           <View style={styles.successDots}>
             <DotMatrix size="sm" pattern="balance" />
