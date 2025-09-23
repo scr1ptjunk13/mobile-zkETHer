@@ -2,14 +2,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
-// Your Firebase project configuration
+// Firebase project configuration from environment variables
 export const firebaseConfig = {
-  apiKey: "AIzaSyBcEaSMZ_mrhofoHZ0aNRst_CXwY_uu3q0",
-  authDomain: "mobile-zketh-otp.firebaseapp.com",
-  projectId: "mobile-zketh-otp",
-  storageBucket: "mobile-zketh-otp.firebasestorage.app",
-  messagingSenderId: "694765970989",
-  appId: "1:694765970989:android:46b649a3e059a89cfe7aa4"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
