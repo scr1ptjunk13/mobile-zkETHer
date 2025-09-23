@@ -1,8 +1,16 @@
 export interface KYCData {
-  fullName: string;
-  aadhaarNumber: string;
-  panNumber: string;
   phoneNumber: string;
+  email: string;
+  aadhaarDocument: string | null;
+  panDocument: string | null;
+  biometricData: string | null;
+  extractedData: {
+    fullName?: string;
+    aadhaarNumber?: string;
+    panNumber?: string;
+    dob?: string;
+    address?: string;
+  } | null;
   isVerified: boolean;
   verificationDate: string;
 }

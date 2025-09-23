@@ -47,8 +47,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       if (savedKYCData) {
         const parsedKYCData = JSON.parse(savedKYCData);
         // Mask sensitive data for display
-        if (parsedKYCData.aadhaarNumber) {
-          parsedKYCData.aadhaarNumber = maskAadhaar(parsedKYCData.aadhaarNumber);
+        if (parsedKYCData.extractedData?.aadhaarNumber) {
+          parsedKYCData.extractedData.aadhaarNumber = maskAadhaar(parsedKYCData.extractedData.aadhaarNumber);
         }
         setKYCDataState(parsedKYCData);
       }
@@ -98,10 +98,13 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   };
 
   const setKYCData = async (data: KYCData) => {
-    // Store original data securely
+    // Store original data securely with masked sensitive information
     const maskedData = {
       ...data,
-      aadhaarNumber: maskAadhaar(data.aadhaarNumber),
+      extractedData: data.extractedData ? {
+        ...data.extractedData,
+        aadhaarNumber: data.extractedData.aadhaarNumber ? maskAadhaar(data.extractedData.aadhaarNumber) : undefined,
+      } : null,
     };
     
     setKYCDataState(maskedData);
