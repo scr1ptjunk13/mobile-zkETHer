@@ -12,8 +12,6 @@ import { StyleSheet, View, Platform } from 'react-native';
 import OnboardingFlow from './src/components/OnboardingFlow';
 import { wagmiConfig, queryClient, initializeAppKit } from './src/config/walletConnect';
 
-// Import polyfills first
-import './polyfills';
 
 export default function App() {
   useEffect(() => {
