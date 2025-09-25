@@ -17,6 +17,9 @@ export const colors = {
   accent: '#00ff88',
   accentMuted: '#001a0f',
   
+  // Status colors
+  error: '#ff4444',
+  
   // Border colors
   border: '#333333',
   

@@ -9,8 +9,10 @@ import DocumentProcessingScreen from './DocumentProcessingScreen';
 import BiometricVerificationScreen from './BiometricVerificationScreen';
 import VerificationProcessingScreen from './VerificationProcessingScreen';
 import VerificationSuccessScreen from './VerificationSuccessScreen';
+import { sandboxApiService } from '../../services/sandboxApi';
+import { onchainIdService } from '../../services/onchainIdService';
 
-type KYCStep = 'contact' | 'otp' | 'documents' | 'processing' | 'biometric' | 'verifying' | 'success';
+type KYCStep = 'contact' | 'otp' | 'documents' | 'biometric' | 'processing' | 'verifying' | 'success';
 
 export default function KYCVerificationScreen() {
   const { setCurrentStep, setKYCData } = useOnboarding();
@@ -41,16 +43,16 @@ export default function KYCVerificationScreen() {
 
   const handleDocumentsNext = useCallback((documentData: { aadhaarDocument: string | null; panDocument: string | null }) => {
     setKycFormData(prev => ({ ...prev, ...documentData }));
-    setStep('processing');
-  }, []);
-
-  const handleProcessingComplete = useCallback((extractedData: any) => {
-    setKycFormData(prev => ({ ...prev, extractedData }));
-    setStep('biometric');
+    setStep('biometric'); // Move to biometric BEFORE processing
   }, []);
 
   const handleBiometricNext = useCallback((biometricData: { selfieData: string }) => {
     setKycFormData(prev => ({ ...prev, biometricData: biometricData.selfieData }));
+    setStep('processing'); // Now go to processing after biometric
+  }, []);
+
+  const handleProcessingComplete = useCallback(async (extractedData: any) => {
+    setKycFormData(prev => ({ ...prev, extractedData }));
     setStep('verifying');
   }, []);
 
@@ -86,6 +88,9 @@ export default function KYCVerificationScreen() {
       case 'biometric':
         setStep('documents');
         break;
+      case 'processing':
+        setStep('biometric');
+        break;
       default:
         // For other steps, you might want to handle differently
         break;
@@ -118,15 +123,15 @@ export default function KYCVerificationScreen() {
           onBack={handleBack}
         />
       )}
-      {step === 'processing' && (
-        <DocumentProcessingScreen 
-          onComplete={handleProcessingComplete}
-        />
-      )}
       {step === 'biometric' && (
         <BiometricVerificationScreen 
           onNext={handleBiometricNext}
           onBack={handleBack}
+        />
+      )}
+      {step === 'processing' && (
+        <DocumentProcessingScreen 
+          onComplete={handleProcessingComplete}
         />
       )}
       {step === 'verifying' && (
@@ -137,6 +142,7 @@ export default function KYCVerificationScreen() {
       {step === 'success' && (
         <VerificationSuccessScreen 
           onGenerateKeys={handleGenerateKeys}
+          onchainId={kycFormData.extractedData?.onchainId}
         />
       )}
     </View>
