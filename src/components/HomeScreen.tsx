@@ -11,7 +11,10 @@ import DepositFlow from './DepositFlow';
 import WithdrawFlow from './WithdrawFlow';
 import SettingsScreen from './SettingsScreen';
 import ComplianceDashboard from './ComplianceDashboard';
+import { SwapModal } from './SwapModal';
 import { ShieldIcon, SettingsGearIcon } from './ui/Icons';
+import { networkService } from '../services/networkService';
+import { swapService } from '../services/swapService';
 
 // Pulsing Dot Component for action buttons
 function PulsingDot() {
@@ -62,6 +65,7 @@ export default function HomeScreen() {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSwap, setShowSwap] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
   
   // Debug KYC status
@@ -190,7 +194,15 @@ export default function HomeScreen() {
                 <View style={styles.dotMatrixContainer}>
                   <DotMatrix pattern="balance" size="medium" />
                 </View>
-                <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} ETH</Text>
+                <View style={styles.balanceRow}>
+                  <Text style={styles.balanceAmount}>{parseFloat(balance).toFixed(2)} ETH</Text>
+                  <TouchableOpacity 
+                    style={styles.addButton}
+                    onPress={() => setShowSwap(true)}
+                  >
+                    <Text style={styles.addButtonText}>+</Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={styles.balanceStatus}>
                   {isKYCCompleted ? 'COMPLIANT & UNLINKABLE' : 'UNLINKABLE'}
                 </Text>
@@ -318,6 +330,18 @@ export default function HomeScreen() {
         <ComplianceDashboard 
           visible={showCompliance}
           onClose={() => setShowCompliance(false)} 
+        />
+      )}
+      
+      {showSwap && (
+        <SwapModal 
+          visible={showSwap}
+          onClose={() => setShowSwap(false)}
+          userAddress={address || ''}
+          onSwapComplete={() => {
+            setShowSwap(false);
+            // Optionally refresh balances here
+          }}
         />
       )}
     </View>
@@ -508,6 +532,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.text.secondary,
     fontFamily: 'monospace',
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  addButton: {
+    backgroundColor: colors.accent,
+    borderRadius: 20,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  addButtonText: {
+    color: colors.background,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   
   // Privacy Card Styles
