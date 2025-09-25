@@ -1,16 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Alert } from 'react-native';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { globalStyles } from '../../styles/globalStyles';
 import Button from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
+import { secureKeyService } from '../../services/secureKeyService';
 
 export default function GeneratePrivacyKeysScreen() {
-  const { setCurrentStep } = useOnboarding();
+  const { setCurrentStep, kycData } = useOnboarding();
   const [step, setStep] = useState<'explanation' | 'generating' | 'complete'>('explanation');
   const [progress, setProgress] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [generatedKeys, setGeneratedKeys] = useState<{
+    publicKey: string;
+    keyId: string;
+    createdAt: string;
+  } | null>(null);
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
   
   // Create animated values for the 5x4 grid (20 dots like PWA)
   const animatedValues = useRef(
@@ -79,36 +87,46 @@ export default function GeneratePrivacyKeysScreen() {
   const handleGenerate = async () => {
     setStep('generating');
     setProgress(0);
-    setTimeRemaining(Math.floor((100) / 30)); // Initial time estimate
+    setTimeRemaining(Math.floor((100) / 30));
     
     // Clear any existing intervals
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
     
-    // Mock key generation process with realistic progress like PWA
-    progressIntervalRef.current = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-          if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
-          
-          setStep('complete');
-          
-          // Auto proceed after showing success
-          setTimeout(() => {
-            nextStep();
-          }, 2000);
-          
-          return 100;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
-    
-    // Update time remaining like PWA
-    timeIntervalRef.current = setInterval(() => {
-      setTimeRemaining(prev => Math.max(1, Math.floor((100 - progress) / 30)));
-    }, 1000);
+    try {
+      // Start progress animation
+      progressIntervalRef.current = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            return prev; // Stop at 90% until real generation completes
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+      
+      timeIntervalRef.current = setInterval(() => {
+        setTimeRemaining(prev => Math.max(1, Math.floor((100 - progress) / 30)));
+      }, 1000);
+      
+      // Actually generate keys
+      const onchainId = (kycData as any)?.extractedData?.onchainId;
+      const keyInfo = await secureKeyService.generateAndStoreKeys(onchainId);
+      
+      // Complete progress
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+      
+      setProgress(100);
+      setGeneratedKeys(keyInfo);
+      setStep('complete');
+      
+    } catch (error) {
+      console.error('❌ Failed to generate keys:', error);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+      Alert.alert('Error', 'Failed to generate secure keys. Please try again.');
+      setStep('explanation');
+    }
   };
 
   const handleBackupLater = () => {
@@ -142,6 +160,101 @@ export default function GeneratePrivacyKeysScreen() {
       </View>
     );
   };
+
+  const handleShowPrivateKey = async () => {
+    try {
+      if (showPrivateKey) {
+        setShowPrivateKey(false);
+        setPrivateKey(null);
+      } else {
+        const key = await secureKeyService.getPrivateKey();
+        if (key) {
+          setPrivateKey(key);
+          setShowPrivateKey(true);
+        } else {
+          Alert.alert('Authentication Required', 'Please authenticate to view private key');
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to retrieve private key');
+    }
+  };
+
+  const blurPrivateKey = (key: string) => {
+    if (!key) return '';
+    const start = key.slice(0, 6);
+    const end = key.slice(-4);
+    return `${start}${'•'.repeat(20)}${end}`;
+  };
+
+  if (step === 'complete') {
+    return (
+      <View style={globalStyles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Keys Generated Successfully!</Text>
+        </View>
+
+        <View style={styles.content}>
+          <Text style={styles.successIcon}>🔐</Text>
+          <Text style={styles.successTitle}>Privacy Keys Created</Text>
+          <Text style={styles.successSubtitle}>
+            Your zkETHer keys have been securely generated and stored on your device
+          </Text>
+
+          {generatedKeys && (
+            <Card style={styles.keysCard}>
+              <CardContent>
+                <View style={styles.keySection}>
+                  <Text style={styles.keyLabel}>Public Key:</Text>
+                  <Text style={styles.publicKeyText}>
+                    {generatedKeys.publicKey.slice(0, 10)}...{generatedKeys.publicKey.slice(-8)}
+                  </Text>
+                </View>
+
+                <View style={styles.keySection}>
+                  <Text style={styles.keyLabel}>Private Key:</Text>
+                  <TouchableOpacity onPress={handleShowPrivateKey}>
+                    <Text style={styles.privateKeyText}>
+                      {showPrivateKey && privateKey ? 
+                        blurPrivateKey(privateKey) : 
+                        '••••••••••••••••••••••••'
+                      }
+                    </Text>
+                    <Text style={styles.tapToReveal}>
+                      {showPrivateKey ? '(Tap to hide)' : '(Tap to reveal - requires authentication)'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.keySection}>
+                  <Text style={styles.keyLabel}>Key ID:</Text>
+                  <Text style={styles.keyIdText}>{generatedKeys.keyId.slice(0, 16)}...</Text>
+                </View>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card style={styles.warningCard}>
+            <CardContent>
+              <View style={styles.warningHeader}>
+                <Text style={styles.warningIcon}>⚠️</Text>
+                <Text style={styles.warningTitle}>Keep these keys safe!</Text>
+              </View>
+              <Text style={styles.warningText}>• Keys are stored securely on your device</Text>
+              <Text style={styles.warningText}>• Private key requires biometric authentication</Text>
+              <Text style={styles.warningText}>• Lost keys = lost funds</Text>
+            </CardContent>
+          </Card>
+
+          <Button
+            title="CONTINUE TO APP"
+            onPress={nextStep}
+            style={styles.continueButton}
+          />
+        </View>
+      </View>
+    );
+  }
 
   if (step === 'generating') {
     return (
@@ -274,7 +387,9 @@ export default function GeneratePrivacyKeysScreen() {
               <Text style={styles.warningIcon}>⚠️</Text>
               <Text style={styles.warningTitle}>Keep these keys safe!</Text>
             </View>
-            <Text style={styles.warningText}>Lost keys = lost funds</Text>
+            <Text style={styles.warningText}>• Lost keys = lost funds</Text>
+            <Text style={styles.warningText}>• Keys are generated locally on your device</Text>
+            <Text style={styles.warningText}>• Private key requires biometric authentication</Text>
           </CardContent>
         </Card>
 
@@ -582,12 +697,77 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressPercentage: {
-    fontSize: 24,
-    fontWeight: 'bold',
     color: '#00ff88',
-    fontFamily: 'monospace',
+  },
+  // Success screen styles
+  successIcon: {
+    fontSize: 48,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    fontFamily: 'monospace',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: '#888888',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  keysCard: {
+    width: '100%',
+    marginBottom: 24,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#333333',
+  },
+  keySection: {
+    marginBottom: 16,
+  },
+  keyLabel: {
+    fontSize: 12,
+    color: '#888888',
+    fontWeight: 'bold',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  publicKeyText: {
+    fontSize: 14,
+    color: '#00ff88',
+    fontFamily: 'monospace',
+    backgroundColor: '#0a1a0a',
+    padding: 8,
+    borderRadius: 4,
+  },
+  privateKeyText: {
+    fontSize: 14,
+    color: '#ff8800',
+    fontFamily: 'monospace',
+    backgroundColor: '#1a1000',
+    padding: 8,
+    borderRadius: 4,
+  },
+  tapToReveal: {
+    fontSize: 10,
+    color: '#666666',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  keyIdText: {
+    fontSize: 14,
+    color: '#88aaff',
+    fontFamily: 'monospace',
+    backgroundColor: '#0a0a1a',
+    padding: 8,
+    borderRadius: 4,
+  },
+  continueButton: {
+    marginTop: 'auto',
   },
   progressCard: {
     width: '100%',
@@ -596,20 +776,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333333',
     padding: 20,
-  },
-  animatedGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  gridDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    margin: 1,
-    backgroundColor: '#333333',
   },
   generationSteps: {
     width: '100%',
@@ -636,32 +802,32 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#00ff88',
-    marginRight: 12,
-  },
-  stepTextCompleted: {
-    fontSize: 14,
-    color: '#00ff88',
-    fontFamily: 'monospace',
+    marginRight: 8,
   },
   stepDotActive: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#00ff88',
-    marginRight: 12,
-  },
-  stepTextActive: {
-    fontSize: 14,
-    color: '#ffffff',
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
+    backgroundColor: '#ff8800',
+    marginRight: 8,
   },
   stepDotPending: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#333333',
-    marginRight: 12,
+    marginRight: 8,
+  },
+  stepTextCompleted: {
+    fontSize: 14,
+    color: '#00ff88',
+    fontFamily: 'monospace',
+  },
+  stepTextActive: {
+    fontSize: 14,
+    color: '#ff8800',
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
   },
   stepTextPending: {
     fontSize: 14,
@@ -670,35 +836,33 @@ const styles = StyleSheet.create({
   },
   timeEstimate: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 24,
   },
   timeText: {
-    fontSize: 12,
-    color: '#888888',
+    fontSize: 16,
+    color: '#ffffff',
     fontFamily: 'monospace',
+    marginBottom: 8,
   },
   timeRemaining: {
     fontSize: 14,
-    color: '#00ff88',
+    color: '#888888',
     fontFamily: 'monospace',
-    fontWeight: 'bold',
   },
-  // PWA-style 5x4 grid styles
   pwaAnimatedGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
+    width: 100,
+    height: 80,
     marginBottom: 24,
-    width: '100%',
-    maxWidth: 200,
-    alignSelf: 'center',
   },
   pwaDot: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 6,
-    margin: 4,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    margin: 1,
+    backgroundColor: '#00ff88',
   },
 });

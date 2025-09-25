@@ -8,10 +8,10 @@ import { createPublicClient, createWalletClient, http, keccak256, encodePacked, 
 import { localhost } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
-// Real deployed contract addresses on Anvil (FINAL FIXED VERSION)
+// Real deployed contract addresses on Anvil (UPDATED FROM LATEST DEPLOYMENT)
 const CONTRACT_ADDRESSES = {
-  CLAIM_ISSUER: '0x610178da211fef7d417bc0e6fed39f05609ad788',
-  ZKETHER_TOKEN: '0xb7f8bc63bbcad18155201308c8f3540b07f84f5e',
+  CLAIM_ISSUER: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  ZKETHER_TOKEN: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
   ANVIL_RPC: 'http://10.70.129.214:8545'
 };
 

@@ -11,6 +11,7 @@ import VerificationProcessingScreen from './VerificationProcessingScreen';
 import VerificationSuccessScreen from './VerificationSuccessScreen';
 import { sandboxApiService } from '../../services/sandboxApi';
 import { onchainIdService } from '../../services/onchainIdService';
+import { secureKeyService } from '../../services/secureKeyService';
 
 type KYCStep = 'contact' | 'otp' | 'documents' | 'biometric' | 'processing' | 'verifying' | 'success';
 
@@ -60,21 +61,44 @@ export default function KYCVerificationScreen() {
     setStep('success');
   }, []);
 
-  const handleGenerateKeys = useCallback(() => {
-    // Save all KYC data
-    const finalKycData = {
-      phoneNumber: kycFormData.phoneNumber,
-      email: kycFormData.email,
-      aadhaarDocument: kycFormData.aadhaarDocument,
-      panDocument: kycFormData.panDocument,
-      biometricData: kycFormData.biometricData,
-      extractedData: kycFormData.extractedData,
-      isVerified: true,
-      verificationDate: new Date().toISOString(),
-    };
-    
-    setKYCData(finalKycData);
-    setCurrentStep('keys' as any);
+  const handleGenerateKeys = useCallback(async () => {
+    try {
+      console.log('🔐 Starting secure key generation...');
+      
+      // Generate and store secure keys for zkETHer protocol
+      const onchainId = kycFormData.extractedData?.onchainId;
+      const keyInfo = await secureKeyService.generateAndStoreKeys(onchainId);
+      
+      console.log('✅ Keys generated successfully:', {
+        keyId: keyInfo.keyId,
+        publicKey: keyInfo.publicKey.slice(0, 10) + '...',
+        onchainId
+      });
+
+      // Save all KYC data with key information
+      const finalKycData = {
+        phoneNumber: kycFormData.phoneNumber,
+        email: kycFormData.email,
+        aadhaarDocument: kycFormData.aadhaarDocument,
+        panDocument: kycFormData.panDocument,
+        biometricData: kycFormData.biometricData,
+        extractedData: kycFormData.extractedData,
+        isVerified: true,
+        verificationDate: new Date().toISOString(),
+        zkETHerKeys: {
+          keyId: keyInfo.keyId,
+          publicKey: keyInfo.publicKey,
+          createdAt: keyInfo.createdAt
+        }
+      };
+      
+      setKYCData(finalKycData);
+      setCurrentStep('keys' as any);
+    } catch (error) {
+      console.error('❌ Failed to generate keys:', error);
+      // Show error to user - you might want to add proper error handling UI
+      alert('Failed to generate secure keys. Please try again.');
+    }
   }, [kycFormData, setKYCData, setCurrentStep]);
 
   const handleBack = useCallback(() => {
