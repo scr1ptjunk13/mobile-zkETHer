@@ -27,7 +27,7 @@ const ZKETHER_TOKEN_ABI = [
     type: 'function',
   },
   {
-    inputs: [{ name: '_userAddress', type: 'address' }],
+    inputs: [{ name: 'account', type: 'address' }],
     name: 'balanceOf',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',

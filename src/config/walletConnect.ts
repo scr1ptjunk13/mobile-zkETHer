@@ -2,6 +2,7 @@
 import '@walletconnect/react-native-compat';
 import { defaultWagmiConfig, createAppKit } from '@reown/appkit-wagmi-react-native';
 import { mainnet, polygon, arbitrum, base, optimism, sepolia } from '@wagmi/core/chains';
+import { defineChain } from 'viem';
 import { QueryClient } from '@tanstack/react-query';
 
 // Project ID from https://cloud.walletconnect.com
@@ -19,7 +20,7 @@ export const metadata = {
 };
 
 // Define Anvil local chain
-const anvil = {
+const anvil = defineChain({
   id: 31337,
   name: 'Anvil Local',
   network: 'anvil',
@@ -35,7 +36,7 @@ const anvil = {
   blockExplorers: {
     default: { name: 'Local', url: 'http://10.70.129.214:8545' },
   },
-} as const;
+});
 
 export const chains = [anvil, sepolia, mainnet, polygon, arbitrum, base, optimism] as const;
 
