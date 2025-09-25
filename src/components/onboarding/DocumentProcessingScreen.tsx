@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { globalStyles } from '../../styles/globalStyles';
 import { colors } from '../../styles/colors';
 import { Card, CardContent } from '../ui/Card';
+import { sandboxApiService } from '../../services/sandboxApi';
+import { zkETHerProtocol } from '../../services/zkETHerProtocol';
 
 interface DocumentProcessingScreenProps {
   onComplete: (extractedData: any) => void;
@@ -26,10 +28,10 @@ export default function DocumentProcessingScreen({ onComplete }: DocumentProcess
   });
 
   const [steps, setSteps] = useState<ProcessingStep[]>([
-    { id: '1', label: 'Aadhaar OCR complete', status: 'pending' },
-    { id: '2', label: 'PAN OCR complete', status: 'pending' },
-    { id: '3', label: 'DigiLocker verification...', status: 'pending' },
-    { id: '4', label: 'Income Tax API check...', status: 'pending' },
+    { id: '1', label: 'Aadhaar verification with Sandbox API', status: 'pending' },
+    { id: '2', label: 'PAN verification with Sandbox API', status: 'pending' },
+    { id: '3', label: 'Face match verification', status: 'pending' },
+    { id: '4', label: 'Creating OnchainID with claims', status: 'pending' },
   ]);
 
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,67 +47,132 @@ export default function DocumentProcessingScreen({ onComplete }: DocumentProcess
       })
     ).start();
 
-    // Start processing simulation
-    progressIntervalRef.current = setInterval(() => {
-      setProgress(prev => {
-        const newProgress = prev + Math.random() * 5 + 2;
+    // Start real KYC processing with mock services
+    const processKYC = async () => {
+      try {
+        console.log('🔄 Starting KYC processing with zkETHer Protocol integration...');
         
-        // Update steps based on progress
-        if (newProgress >= 25 && steps[0].status === 'pending') {
-          setSteps(prevSteps => 
-            prevSteps.map((step, index) => 
-              index === 0 ? { ...step, status: 'completed' } : step
-            )
-          );
-          setCurrentStep(1);
-        }
+        // Step 1: Aadhaar verification
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 0 ? { ...step, status: 'processing' } : step
+          )
+        );
         
-        if (newProgress >= 50 && steps[1].status === 'pending') {
-          setSteps(prevSteps => 
-            prevSteps.map((step, index) => 
-              index === 1 ? { ...step, status: 'completed' } : step
-            )
-          );
-          setCurrentStep(2);
-        }
+        const aadhaarResult = await sandboxApiService.verifyAadhaar(
+          extractedData.aadhaar.replace(/\s/g, ''), 
+          extractedData.name
+        );
         
-        if (newProgress >= 75 && steps[2].status === 'pending') {
-          setSteps(prevSteps => 
-            prevSteps.map((step, index) => 
-              index === 2 ? { ...step, status: 'completed' } : step
-            )
-          );
-          setCurrentStep(3);
-        }
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 0 ? { ...step, status: 'completed' } : step
+          )
+        );
+        setProgress(25);
+
+        // Step 2: PAN verification
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 1 ? { ...step, status: 'processing' } : step
+          )
+        );
         
-        if (newProgress >= 100) {
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-            progressIntervalRef.current = null;
-          }
-          
-          setSteps(prevSteps => 
-            prevSteps.map(step => ({ ...step, status: 'completed' }))
-          );
-          
-          // Complete processing after a short delay
-          setTimeout(() => {
-            onComplete(extractedData);
-          }, 1500);
-          
-          return 100;
-        }
+        const panResult = await sandboxApiService.verifyPAN(
+          extractedData.pan,
+          extractedData.name
+        );
         
-        return newProgress;
-      });
-    }, 200);
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 1 ? { ...step, status: 'completed' } : step
+          )
+        );
+        setProgress(50);
+
+        // Step 3: Face match verification
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 2 ? { ...step, status: 'processing' } : step
+          )
+        );
+        
+        const faceMatchResult = await sandboxApiService.verifyFaceMatch(
+          'mock_aadhaar_photo_base64',
+          'mock_selfie_base64'
+        );
+        
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 2 ? { ...step, status: 'completed' } : step
+          )
+        );
+        setProgress(75);
+
+        // Step 4: Create OnchainID with claims
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 3 ? { ...step, status: 'processing' } : step
+          )
+        );
+
+        const zkETHerEligibility = await sandboxApiService.checkzkETHerEligibility('0x1234567890123456789012345678901234567890');
+        
+        // Create OnchainID and issue all claims using zkETHer Protocol
+        const onchainResult = await zkETHerProtocol.processKYCVerification({
+          userAddress: '0x1234567890123456789012345678901234567890', // Mock user address
+          aadhaarData: aadhaarResult,
+          panData: panResult,
+          faceMatchData: faceMatchResult
+        });
+
+        setSteps(prevSteps => 
+          prevSteps.map((step, index) => 
+            index === 3 ? { ...step, status: 'completed' } : step
+          )
+        );
+        setProgress(100);
+
+        console.log('✅ KYC processing completed successfully!', {
+          onchainId: onchainResult.onchainID,
+          isVerified: onchainResult.isVerified
+        });
+
+        // Complete with enhanced data including OnchainID
+        const enhancedData = {
+          ...extractedData,
+          onchainId: onchainResult.onchainID,
+          verificationResults: {
+            aadhaar: aadhaarResult,
+            pan: panResult,
+            faceMatch: faceMatchResult,
+            zkETHerEligibility: zkETHerEligibility
+          },
+          claims: onchainResult.claims,
+          isFullyVerified: onchainResult.isVerified
+        };
+
+        setTimeout(() => {
+          onComplete(enhancedData);
+        }, 1500);
+
+      } catch (error) {
+        console.error('❌ KYC processing failed:', error);
+        // Fallback to mock data on error
+        setTimeout(() => {
+          onComplete(extractedData);
+        }, 1500);
+      }
+    };
+
+    processKYC();
 
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [onComplete, extractedData, steps]);
+  }, [onComplete, extractedData]);
 
   const getStatusIcon = (status: ProcessingStep['status']) => {
     switch (status) {

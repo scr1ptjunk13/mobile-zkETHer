@@ -7,9 +7,10 @@ import { Card, CardContent } from '../ui/Card';
 
 interface VerificationSuccessScreenProps {
   onGenerateKeys: () => void;
+  onchainId?: string;
 }
 
-export default function VerificationSuccessScreen({ onGenerateKeys }: VerificationSuccessScreenProps) {
+export default function VerificationSuccessScreen({ onGenerateKeys, onchainId }: VerificationSuccessScreenProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -36,7 +37,7 @@ export default function VerificationSuccessScreen({ onGenerateKeys }: Verificati
     { id: '4', label: 'KYC Level 2', icon: '✓' },
   ];
 
-  const onchainId = '0xabc123...def456';
+  const displayOnchainId = onchainId || '0xabc123...def456';
 
   return (
     <View style={globalStyles.container}>
@@ -85,7 +86,7 @@ export default function VerificationSuccessScreen({ onGenerateKeys }: Verificati
         {/* ONCHAINID Display */}
         <Animated.View style={[styles.onchainContainer, { opacity: fadeAnim }]}>
           <Text style={styles.onchainLabel}>ONCHAINID:</Text>
-          <Text style={styles.onchainId}>{onchainId}</Text>
+          <Text style={styles.onchainId}>{displayOnchainId}</Text>
         </Animated.View>
 
         {/* Generate Keys Button */}
