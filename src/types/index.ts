@@ -6,16 +6,24 @@ export interface KYCData {
   aadhaarNumber: string;
   panNumber: string;
   phoneNumber: string;
+  extractedData?: {
+    aadhaarNumber?: string;
+    panNumber?: string;
+    fullName?: string;
+  } | null;
 }
 
+export type OnboardingStep = 'circom' | 'welcome' | 'wallet' | 'kyc' | 'keys' | 'complete';
+
 export interface OnboardingContextType {
-  currentStep: number;
+  currentStep: OnboardingStep;
   walletAddress: string;
   walletBalance: number;
   walletType: string;
   isKYCCompleted: boolean;
   kycData: KYCData | null;
-  setCurrentStep: (step: number) => void;
+  setCurrentStep: (step: OnboardingStep) => void;
+  nextStep: () => void;
   setWalletConnection: (address: string, balance: number, type: string) => void;
   setKYCData: (data: KYCData) => void;
   completeKYC: () => void;
@@ -67,6 +75,7 @@ export type RootStackParamList = {
 };
 
 export type OnboardingStackParamList = {
+  CircomProof: undefined;
   Welcome: undefined;
   WalletConnection: undefined;
   KYCVerification: undefined;

@@ -215,6 +215,10 @@ public.json
 mopro_bindings/
 target/
 
-# generated native folders
-/ios
-/android
+# Firebase config files (keep example, ignore real)
+google-services.json
+GoogleService-Info.plist
+firebase.json
+
+# Environment files
+.env
