@@ -6,8 +6,9 @@ import Button from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
 import FirebaseAuthService from '../../services/firebaseAuth';
 import { ConfirmationResult } from 'firebase/auth';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-import { firebaseConfig } from '../../config/firebase';
+// Mock Firebase components - removed expo-firebase-recaptcha dependency
+// import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
+// import { firebaseConfig } from '../../config/firebase';
 
 interface OTPVerificationScreenProps {
   phoneNumber: string;
@@ -32,30 +33,19 @@ export default function OTPVerificationScreen({
   
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Send OTP when component mounts
+  // Mock OTP functionality - Firebase removed
   useEffect(() => {
-    const sendInitialOTP = async () => {
-      try {
-        const otpConfirmation = await FirebaseAuthService.sendOTP(phoneNumber, recaptchaVerifier.current);
-        setConfirmation(otpConfirmation);
-      } catch (error) {
-        console.error('Firebase OTP Error:', error);
-        setShowSkipOption(true);
-        Alert.alert(
-          'OTP Service Unavailable', 
-          'Firebase billing needs to be enabled for SMS. You can skip this step for demo purposes.',
-          [
-            { text: 'Go Back', onPress: onBack },
-            { text: 'Skip for Demo', onPress: () => onVerified() }
-          ]
-        );
-      }
-    };
-
-    if (recaptchaVerifier.current) {
-      sendInitialOTP();
-    }
-  }, [phoneNumber, onBack]);
+    // Show skip option immediately since Firebase is not available
+    setShowSkipOption(true);
+    Alert.alert(
+      'Demo Mode', 
+      'OTP verification is disabled in demo mode. You can skip this step.',
+      [
+        { text: 'Go Back', onPress: onBack },
+        { text: 'Skip for Demo', onPress: () => onVerified() }
+      ]
+    );
+  }, [phoneNumber, onBack, onVerified]);
 
   useEffect(() => {
     if (timer > 0) {
@@ -93,26 +83,23 @@ export default function OTPVerificationScreen({
   };
 
   const handleVerifyOTP = async (otpCode: string) => {
-    if (!confirmation) {
-      Alert.alert('Error', 'Please wait for OTP to be sent');
-      return;
-    }
-
+    // Mock OTP verification - accept any 6-digit code
     setIsVerifying(true);
     
     try {
-      const userCredential = await FirebaseAuthService.verifyOTP(confirmation, otpCode);
+      // Simulate verification delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (userCredential) {
-        // OTP verified successfully
+      if (otpCode.length === 6) {
+        // Mock successful verification
         onVerified();
       } else {
-        Alert.alert('Verification Failed', 'Please try again');
+        Alert.alert('Invalid OTP', 'Please enter a 6-digit code');
         setOtp(['', '', '', '', '', '']);
         inputRefs.current[0]?.focus();
       }
     } catch (error) {
-      Alert.alert('Invalid OTP', 'Please enter the correct OTP code');
+      Alert.alert('Verification Failed', 'Please try again');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -122,17 +109,12 @@ export default function OTPVerificationScreen({
 
   const handleResend = async () => {
     if (canResend) {
-      try {
-        const otpConfirmation = await FirebaseAuthService.sendOTP(phoneNumber, recaptchaVerifier.current);
-        setConfirmation(otpConfirmation);
-        setTimer(30);
-        setCanResend(false);
-        setOtp(['', '', '', '', '', '']);
-        onResendOTP();
-        Alert.alert('OTP Sent', 'A new OTP has been sent to your phone');
-      } catch (error) {
-        Alert.alert('Error', 'Failed to resend OTP. Please try again.');
-      }
+      // Mock resend functionality
+      setTimer(30);
+      setCanResend(false);
+      setOtp(['', '', '', '', '', '']);
+      onResendOTP();
+      Alert.alert('Demo Mode', 'OTP resend is mocked in demo mode');
     }
   };
 
@@ -142,10 +124,7 @@ export default function OTPVerificationScreen({
 
   return (
     <View style={globalStyles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-      />
+      {/* Firebase Recaptcha removed - using mock OTP */}
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -179,8 +158,8 @@ export default function OTPVerificationScreen({
                 ref={ref => { inputRefs.current[index] = ref; }}
                 style={[
                   styles.otpInput,
-                  digit && styles.otpInputFilled,
-                  isVerifying && styles.otpInputDisabled
+                  digit ? styles.otpInputFilled : null,
+                  isVerifying ? styles.otpInputDisabled : null
                 ]}
                 value={digit}
                 onChangeText={(value) => handleOtpChange(value, index)}

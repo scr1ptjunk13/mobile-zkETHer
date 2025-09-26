@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { OnboardingContextType, KYCData, OnboardingStep } from '../types';
+import { OnboardingContextType, KYCData, OnboardingStep } from '../types/index';
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
@@ -9,7 +9,7 @@ interface OnboardingProviderProps {
 }
 
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children }) => {
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('circom');
   const [walletAddress, setWalletAddress] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletType, setWalletType] = useState('');
@@ -74,7 +74,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   };
 
   const nextStep = async () => {
-    const stepOrder: OnboardingStep[] = ['welcome', 'wallet', 'kyc', 'keys', 'complete'];
+    const stepOrder: OnboardingStep[] = ['circom', 'welcome', 'wallet', 'kyc', 'keys', 'complete'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       await setCurrentStepWithPersistence(stepOrder[currentIndex + 1]);
