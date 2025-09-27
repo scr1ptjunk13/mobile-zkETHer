@@ -4,6 +4,9 @@ import { Card, CardContent } from './ui/Card';
 import Button from './ui/Button';
 import DotMatrix from './ui/DotMatrix';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { useWallet } from '../contexts/WalletContext';
+import { useGasPrice, useEstimateGas } from 'wagmi';
+import { formatEther, parseEther } from 'viem';
 import { colors } from '../styles/colors';
 
 interface DepositFlowProps {
@@ -20,15 +23,23 @@ export default function DepositFlow({ onClose }: DepositFlowProps) {
   const [transactionHash, setTransactionHash] = useState('');
   const [leafIndex, setLeafIndex] = useState(0);
   const [blockNumber, setBlockNumber] = useState(0);
-  const { walletType, walletAddress, walletBalance, isKYCCompleted } = useOnboarding();
+  const { isKYCCompleted } = useOnboarding();
+  const { isConnected, address, balance, walletType } = useWallet();
 
-  // Tax and fee calculations
+  // Real-time gas estimation
+  const { data: gasPrice } = useGasPrice();
+  const { data: gasEstimate } = useEstimateGas({
+    to: '0x0000000000000000000000000000000000000000', // Replace with actual zkETHer contract
+    value: parseEther('1'),
+    account: address as `0x${string}` | undefined,
+    enabled: isConnected && !!address,
+  });
+  
+  // Calculations
   const depositAmount = 1.0;
-  const gasFee = 0.003;
-  const tdsRate = 0.01; // 1%
-  const tdsAmount = depositAmount * tdsRate;
-  const netAmount = depositAmount - tdsAmount;
-  const totalCost = depositAmount + gasFee + (isKYCCompleted ? tdsAmount : 0);
+  const gasFeeInWei = gasPrice && gasEstimate ? gasPrice * gasEstimate : 0n;
+  const gasFee = gasFeeInWei ? parseFloat(formatEther(gasFeeInWei)) : 0.003; // fallback
+  const totalCost = depositAmount + gasFee;
 
   // Generate mock data
   useEffect(() => {
@@ -152,15 +163,6 @@ export default function DepositFlow({ onClose }: DepositFlowProps) {
                   </View>
                 </View>
 
-                {/* Action Buttons */}
-                <View style={styles.actionButtons}>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionButtonText}>📱 QR SCAN</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionButtonText}>💬 CONTACTS</Text>
-                  </TouchableOpacity>
-                </View>
 
                 {/* Amount Section */}
                 <View style={styles.section}>
@@ -183,10 +185,10 @@ export default function DepositFlow({ onClose }: DepositFlowProps) {
                       <View style={styles.walletContent}>
                         <View style={styles.walletInfo}>
                           <Text style={styles.walletType}>
-                            {walletType || 'metamask'} ({walletAddress?.slice(0, 8) || '0x4aec92'}...)
+                            {isConnected ? `${walletType} (${address?.slice(0, 8)}...)` : 'Not Connected'}
                           </Text>
                           <Text style={styles.walletBalance}>
-                            Balance: {walletBalance || '5.44'} ETH
+                            Balance: {isConnected ? `${balance} ETH` : '0.0 ETH'}
                           </Text>
                         </View>
                         <Text style={styles.walletEmoji}>📱</Text>
@@ -248,51 +250,25 @@ export default function DepositFlow({ onClose }: DepositFlowProps) {
                     <Text style={styles.detailsTitle}>Transaction Details:</Text>
                     
                     <View style={styles.detailsRow}>
-                      <Text style={styles.detailsLabel}>Gas Fee:</Text>
-                      <Text style={styles.detailsValue}>~{gasFee.toFixed(3)} ETH</Text>
+                      <Text style={styles.detailsLabel}>Amount:</Text>
+                      <Text style={styles.detailsValue}>1.00 ETH</Text>
                     </View>
                     
-                    {isKYCCompleted && (
-                      <>
-                        <View style={styles.detailsRow}>
-                          <Text style={styles.detailsLabel}>TDS (1%):</Text>
-                          <Text style={styles.detailsValue}>{tdsAmount.toFixed(2)} ETH</Text>
-                        </View>
-                        <View style={styles.detailsRow}>
-                          <Text style={styles.detailsLabel}>Net Amount:</Text>
-                          <Text style={styles.detailsValue}>{netAmount.toFixed(2)} ETH</Text>
-                        </View>
-                      </>
-                    )}
+                    <View style={styles.detailsRow}>
+                      <Text style={styles.detailsLabel}>Gas Fee:</Text>
+                      <Text style={styles.detailsValue}>{gasFee.toFixed(6)} ETH</Text>
+                    </View>
                     
                     <View style={[styles.detailsRow, styles.totalRow]}>
                       <Text style={styles.totalLabel}>Total Cost:</Text>
-                      <Text style={styles.totalValue}>{totalCost.toFixed(3)} ETH</Text>
+                      <Text style={styles.totalValue}>{totalCost.toFixed(6)} ETH</Text>
                     </View>
 
-                    {/* Your deposit will be */}
                     <View style={styles.featureSection}>
-                      <Text style={styles.featureTitle}>Your deposit will be:</Text>
-                      <Text style={styles.featureItem}>✓ Added to privacy pool</Text>
-                      <Text style={styles.featureItem}>✓ Visible on blockchain</Text>
-                      <Text style={styles.featureItem}>✓ Unlinkable when withdrawn</Text>
-                    </View>
-
-                    {/* Compliance Features */}
-                    <View style={styles.featureSection}>
-                      <Text style={styles.featureTitle}>Compliance Features:</Text>
-                      <Text style={styles.featureItem}>✓ KYC Verified User</Text>
-                      <Text style={styles.featureItem}>✓ AML Screening Passed</Text>
-                      <Text style={styles.featureItem}>✓ Auto Tax Reporting</Text>
-                    </View>
-
-                    {/* Current Anonymity Set */}
-                    <View style={styles.featureSection}>
-                      <Text style={styles.featureTitle}>Current Anonymity Set:</Text>
-                      <Text style={styles.anonymityCount}>47,293 users</Text>
-                      <View style={styles.dotMatrixSmall}>
-                        <DotMatrix pattern="privacy" size="small" />
-                      </View>
+                      <Text style={styles.featureTitle}>Privacy Features:</Text>
+                      <Text style={styles.featureItem}>✓ Anonymous withdrawal</Text>
+                      <Text style={styles.featureItem}>✓ Zero-knowledge proofs</Text>
+                      <Text style={styles.featureItem}>✓ Unlinkable transactions</Text>
                     </View>
                   </CardContent>
                 </Card>
@@ -373,12 +349,12 @@ export default function DepositFlow({ onClose }: DepositFlowProps) {
 
                 <Card style={styles.walletCardApproval}>
                   <CardContent style={styles.walletCardContent}>
-                    <Text style={styles.walletIcon}>📱 {walletType}</Text>
+                    <Text style={styles.walletIcon}>📱 {isConnected ? walletType : 'Not Connected'}</Text>
                     <Text style={styles.walletTitle}>zkETHer Deposit</Text>
                     <View style={styles.walletDetails}>
                       <Text style={styles.walletDetailText}>To: 0x...contract</Text>
                       <Text style={styles.walletDetailText}>Amount: 1.00 ETH</Text>
-                      <Text style={styles.walletDetailText}>Gas: 0.003 ETH</Text>
+                      <Text style={styles.walletDetailText}>Gas: {gasFee.toFixed(6)} ETH</Text>
                     </View>
                     <Text style={styles.walletData}>Data: {nonce}...</Text>
                     <View style={styles.walletButtons}>

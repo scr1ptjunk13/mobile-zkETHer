@@ -133,6 +133,17 @@ export default function GeneratePrivacyKeysScreen() {
     nextStep();
   };
 
+  const handleClearKeys = async () => {
+    try {
+      await secureKeyService.deleteKeys();
+      console.log('🗑️ Keys cleared successfully - ready for fresh generation');
+      Alert.alert('Keys Cleared', 'All keys have been deleted. You can now test key generation from scratch.');
+    } catch (error) {
+      console.error('❌ Failed to clear keys:', error);
+      Alert.alert('Error', 'Failed to clear keys');
+    }
+  };
+
   // PWA-style 5x4 grid animated dots (20 dots total)
   const renderPWAAnimatedGrid = () => {
     return (
@@ -408,6 +419,11 @@ export default function GeneratePrivacyKeysScreen() {
             style={styles.generateButton}
           />
         </View>
+
+        {/* Debug button for testing */}
+        <TouchableOpacity onPress={handleClearKeys} style={styles.debugButton}>
+          <Text style={styles.debugButtonText}>🗑️ Clear Keys (Testing)</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -864,5 +880,17 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     margin: 1,
     backgroundColor: '#00ff88',
+  },
+  debugButton: {
+    marginTop: 16,
+    padding: 8,
+    backgroundColor: '#333333',
+    borderRadius: 4,
+    alignSelf: 'center',
+  },
+  debugButtonText: {
+    fontSize: 12,
+    color: '#888888',
+    fontFamily: 'monospace',
   },
 });

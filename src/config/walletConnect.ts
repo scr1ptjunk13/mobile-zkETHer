@@ -30,11 +30,11 @@ const anvil = defineChain({
     symbol: 'ETH',
   },
   rpcUrls: {
-    public: { http: ['http://10.70.129.214:8545'] },
-    default: { http: ['http://10.70.129.214:8545'] },
+    public: { http: ['http://10.200.9.12:8545'] },
+    default: { http: ['http://10.200.9.12:8545'] },
   },
   blockExplorers: {
-    default: { name: 'Local', url: 'http://10.70.129.214:8545' },
+    default: { name: 'Local', url: 'http://10.200.9.12:8545' },
   },
 });
 
